@@ -50,10 +50,8 @@ namespace BackPropagation
         // Avoid range checks below.
         assert(inputs.size() == m_weights.size());
 
-        for (auto input : inputs)
-        {
-            sum += m_weights[offset++] * input;
-        }
+        // Naive loop seems slightly faster, but, this looks nicer
+        sum = std::inner_product(inputs.begin(), inputs.end(), m_weights.begin(), (double)0.0);
 
         // Run activation function
         m_output = m_func->compute(sum);

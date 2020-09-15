@@ -4,10 +4,12 @@
  * Author: Nicolae Natea
  */
 
+#include <assert.h>
+#include <math.h>
+
 #include <algorithm>
 #include <numeric>
 #include <random>
-#include <math.h>
 
 #include "Network.hpp"
 
@@ -16,6 +18,21 @@ namespace BackPropagation
     namespace
     {
         auto rng = std::default_random_engine { };
+    }
+
+    Network::Settings::Settings(
+        uint32_t maxIterations,
+        double targetError,
+        double storeThreshold,
+        double restoreThreshold) :
+            max_iterations(maxIterations),
+            target_error(targetError),
+            store_threshold(storeThreshold),
+            restore_threshold(restoreThreshold)
+    {
+        // Probably a throw would be more appropriate
+        assert(store_threshold >= 0.0 && store_threshold <= 1.0);
+        assert(restore_threshold >= 1.0);
     }
 
     Network::Network(
@@ -28,6 +45,21 @@ namespace BackPropagation
         {
             m_layers.push_back(Layer(layer.first, incomingInputs, layer.second));
             incomingInputs = layer.first;
+        }
+
+        // Save the current network state.
+        save();
+    }
+
+    Network::Network(std::vector<std::uint32_t> layers, functions::Activation_function_cPtr func)
+    {
+        uint32_t incomingInputs = 0;
+
+        // Populate the current network with layers.
+        for (auto nbrOfNeurons : layers)
+        {
+            m_layers.push_back(Layer(nbrOfNeurons, incomingInputs, func));
+            incomingInputs = nbrOfNeurons;
         }
 
         // Save the current network state.
@@ -111,8 +143,13 @@ namespace BackPropagation
         std::vector<uint32_t> order(data.size());
         std::iota(std::begin(order), std::end(order), 0);
 
-        // Todo: add assert on store_threshold / restore_threshold
-        // Todo: validate training data
+        size_t inputLayerSize = m_layers[0].size();
+        size_t outputLayerSize = m_layers[m_layers.size() - 1].size();
+
+        for(auto &trainingData : data) {
+            assert(trainingData.inputs.size() == inputLayerSize);
+            assert(trainingData.outputs.size() == outputLayerSize);
+        }
 
         // Perform an iteration to get a reference error.
         double error = iterate(data, order, settings);
@@ -120,6 +157,7 @@ namespace BackPropagation
         // Save network state for which we have the error computed.
         save();
 
+        double previousError = error;
         double storeThreshold = error * settings.store_threshold;
         double restoreThreshold = error * settings.restore_threshold;
         uint32_t interation = 0;
@@ -129,20 +167,33 @@ namespace BackPropagation
             std::shuffle(std::begin(order), std::end(order), rng);
             error = iterate(data, order, settings);
 
-            // Save the network only when the specified improvement is reached
+            if (error <= settings.target_error)
+            {
+                break;
+            }
             if (error < storeThreshold)
             {
+                // Save the network only when the specified improvement is reached
+                previousError = error;
                 storeThreshold = error * settings.store_threshold;
                 restoreThreshold = error * settings.restore_threshold;
                 save();
             }
             else if (error > restoreThreshold)
             {
+                // Pretty unlikely with the right data in the current form
                 restore();
             }
         }
 
-        // Todo: Should probably save the current state if better.
+        if (error < previousError)
+        {
+            save();
+        }
+        else if (error > previousError) {
+            error = previousError;
+            restore();
+        }
 
         return error;
     }

@@ -26,22 +26,27 @@ namespace BackPropagation
             /** Class Settings */
             struct Settings
             {
-                    uint32_t max_iterations;  ///< The maximum number of iterations used to train the network
-                    double store_threshold;   ///< Value between 0 and 1, to trigger a store of the current state
-                                              ///< of the network if the error decreases below
-                                              ///< (prev_error * store_threshold)
-                    double restore_threshold; ///< Value equal or grater than 1, to trigger a restore to a
-                                              ///< previous state of the network if the error increases beyond
-                                              ///< (prev_error * restore_threshold)
+                    uint32_t max_iterations; ///< The maximum number of iterations used to train the network
+                    double target_error;     ///< The error at which the network is considered as trained
+                    /**
+                     * Value between 0 and 1, to trigger a store of the current state
+                     * of the network if the error decreases below
+                     * (prev_error * store_threshold)
+                     */
+                    double store_threshold;
+                    /** Value equal or greater than 1, to trigger a restore to a
+                     * previous state of the network if the error increases beyond
+                     * (prev_error * restore_threshold)
+                     */
+                    double restore_threshold;
 
                     // Construction
                 public:
-                    Settings(uint32_t maxIterations, double storeThreshold, double restoreThreshold) :
-                            max_iterations(maxIterations),
-                            store_threshold(storeThreshold),
-                            restore_threshold(restoreThreshold)
-                    {
-                    }
+                    Settings(
+                        uint32_t maxIterations,
+                        double targetError,
+                        double storeThreshold,
+                        double restoreThreshold);
             };
         private:
             std::vector<Layer> m_layers;               ///< Network layers
@@ -79,6 +84,7 @@ namespace BackPropagation
              */
             Network(
                 std::vector<std::pair<std::uint32_t, functions::Activation_function_cPtr>> layersInfo);
+            Network(std::vector<std::uint32_t> layers, functions::Activation_function_cPtr func);
             ~Network();
 
             // Methods

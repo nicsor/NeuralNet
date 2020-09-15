@@ -29,33 +29,13 @@ std::vector<BackPropagation::Training_data> train_data = {
     { { 1, 1, 1, 1 }, { 0, 0, 0, 0 } }
 };
 
-std::vector<std::vector<double>> test_inputs =
-{
-    { 0, 0, 0, 0 },
-    { 0, 0, 0, 1 },
-    { 0, 0, 1, 0 },
-    { 0, 0, 1, 1 },
-    { 0, 1, 0, 0 },
-    { 0, 1, 0, 1 },
-    { 0, 1, 1, 0 },
-    { 0, 1, 1, 1 },
-    { 1, 0, 0, 0 },
-    { 1, 0, 0, 1 },
-    { 1, 0, 1, 0 },
-    { 1, 0, 1, 1 },
-    { 1, 1, 0, 0 },
-    { 1, 1, 0, 1 },
-    { 1, 1, 1, 0 },
-    { 1, 1, 1, 1 }
-};
-
 int main()
 {
     BackPropagation::functions::Activation_function_cPtr sigmoid =
         std::shared_ptr<const BackPropagation::functions::Activation_function>(
             new BackPropagation::functions::Sigmoid());
-    BackPropagation::Network net( { { 4, sigmoid }, { 8, sigmoid }, { 4, sigmoid } });
-    BackPropagation::Network::Settings settings(100, 0.99, 1);
+    BackPropagation::Network net({ 4, 8, 4 }, sigmoid);
+    BackPropagation::Network::Settings settings(10000, 0.01, 0.99, 1);
 
     auto start = std::chrono::high_resolution_clock::now();
     double error = net.train(train_data, settings);
@@ -64,23 +44,22 @@ int main()
     std::chrono::milliseconds durationMs =
         std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
 
-
-    std::cout << "Network training data:" << std::endl << net;
+    std::cout << "Network training data:" << std::endl << net << std::endl;
 
     std::cout << "Training error: " << error << std::endl;
-    std::cout << "Training duration: " << durationMs.count() << " ms\n";
-    std::cout << "Test trained network:\n";
+    std::cout << "Training duration: " << durationMs.count() << " ms" << std::endl;
+    std::cout << "Test trained network:" << std::endl;
 
-    for (auto input : test_inputs)
+    for (auto data : train_data)
     {
-        for (auto in : input)
+        for (auto in : data.inputs)
         {
             std::cout << in << " ";
         }
 
         std::cout << "= ";
 
-        auto output = net.test(input);
+        auto output = net.test(data.inputs);
 
         for (auto out : output)
         {
